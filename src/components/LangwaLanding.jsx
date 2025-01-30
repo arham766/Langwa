@@ -2,29 +2,12 @@
 
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Sun, Moon } from 'lucide-react';
-import { Link } from 'react-router-dom'; // Import Link from react-router-dom
+import { Sun, Moon, ChevronRight, Globe, Book, Users, Star, Download, Menu, X, Check, ArrowRight, Play, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import {
-  ChevronRight,
-  Globe,
-  Book,
-  Users,
-  Star,
-  Download,
-  Menu,
-  X,
-  Check,
-  ArrowRight,
-  Play,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
-} from 'lucide-react';
 
 // Lazy load components for better performance
 const LanguageLearningAnimation = React.lazy(() => import('./animations/LanguageLearningAnimation'));
@@ -139,6 +122,12 @@ const LangwaLanding = () => {
     },
   };
 
+  const fadeInUp = {
+    initial: { opacity: 0, y: 60 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6 }
+  };
+
   // Data
   const languages = ['English', 'Spanish', 'French', 'German', 'Japanese', 'Chinese'];
 
@@ -205,7 +194,7 @@ const LangwaLanding = () => {
     }
   };
 
-  // Three.js background animation
+  // Enhanced Three.js background animation
   useEffect(() => {
     if (canvasRef.current && !threeSceneRef.current) {
       const scene = new THREE.Scene();
@@ -219,32 +208,57 @@ const LangwaLanding = () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
+      // Create particles
       const particlesGeometry = new THREE.BufferGeometry();
-      const particlesCount = window.innerWidth < 768 ? 200 : 500;
+      const particlesCount = window.innerWidth < 768 ? 300 : 700;
       const positions = new Float32Array(particlesCount * 3);
 
       for (let i = 0; i < particlesCount * 3; i++) {
-        positions[i] = (Math.random() - 0.5) * 100;
+        positions[i] = (Math.random() - 0.5) * 200;
       }
 
       particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
       const particlesMaterial = new THREE.PointsMaterial({
-        color: isDarkTheme ? 0xcccccc : 0x6a0dad, // Change color based on theme
+        color: isDarkTheme ? 0xffffff : 0x7e22ce, // Change color based on theme
         size: 0.5,
         sizeAttenuation: true,
+        transparent: true,
+        opacity: 0.7,
       });
 
       const particles = new THREE.Points(particlesGeometry, particlesMaterial);
       scene.add(particles);
 
-      camera.position.z = 50;
+      camera.position.z = 100;
 
-      // Optimized animation loop
+      // Mouse Interaction
+      const mouse = new THREE.Vector2();
+      const target = new THREE.Vector2();
+
+      const onMouseMove = (event) => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+
+      // Animation loop with interactivity
       let animationFrameId;
       const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
-        particles.rotation.y += 0.0005;
+
+        // Smoothly interpolate mouse position
+        target.x += (mouse.x - target.x) * 0.05;
+        target.y += (mouse.y - target.y) * 0.05;
+
+        camera.position.x += (target.x * 50 - camera.position.x) * 0.05;
+        camera.position.y += (target.y * 50 - camera.position.y) * 0.05;
+
+        camera.lookAt(scene.position);
+
+        particles.rotation.y += 0.001;
+
         renderer.render(scene, camera);
       };
 
@@ -265,8 +279,10 @@ const LangwaLanding = () => {
       window.addEventListener('resize', handleResize);
 
       // Cleanup
+      threeSceneRef.current = scene;
       return () => {
         window.removeEventListener('resize', handleResize);
+        window.removeEventListener('mousemove', onMouseMove);
         cancelAnimationFrame(animationFrameId);
         particlesGeometry.dispose();
         particlesMaterial.dispose();
@@ -325,8 +341,8 @@ const LangwaLanding = () => {
   const navigationItems = ['Features', 'Benefits', 'Community', 'Blog', 'Testimonials', 'Download'];
 
   return (
-    // Update the main wrapper div to support dark mode with transition
-    <div className={`min-h-screen ${isDarkTheme ? 'dark bg-gray-900' : 'bg-white'} overflow-x-hidden transition-colors duration-300`}>
+    // Add 'scroll-smooth' class for smooth scrolling
+    <div className={`min-h-screen scroll-smooth ${isDarkTheme ? 'dark bg-gray-900' : 'bg-white'} overflow-x-hidden transition-colors duration-300`}>
       {/* Background Canvas */}
       <canvas
         ref={canvasRef}
@@ -593,7 +609,7 @@ const LangwaLanding = () => {
       <motion.section
         ref={featuresRef}
         id="features"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800 relative z-10 features-section transition-colors duration-300"
+        className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800 relative z-10 features-section transition-colors duration-300 parallax-section"
       >
         <div className="max-w-7xl mx-auto">
           <motion.h2
@@ -612,10 +628,10 @@ const LangwaLanding = () => {
               <motion.div
                 key={index}
                 className={`feature-card p-6 rounded-xl bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-300`}
-                variants={itemVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
+                variants={fadeInUp}
+                initial="initial"
+                whileInView="animate"
+                viewport={{ once: true, margin: "-100px" }}
                 whileHover={{ y: -5, scale: 1.02 }}
                 transition={{ delay: feature.delay }}
               >
@@ -638,7 +654,7 @@ const LangwaLanding = () => {
           </div>
           <div className="mt-16">
             <Suspense fallback={<LoadingSpinner />}>
-              <FeaturesAnimation />
+               <FeaturesAnimation isDarkTheme={isDarkTheme} />
             </Suspense>
           </div>
         </div>
@@ -647,7 +663,7 @@ const LangwaLanding = () => {
       {/* Benefits Section */}
       <motion.section
         id="benefits"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-purple-50 dark:bg-gray-900 relative z-10 transition-colors duration-300"
+        className="py-16 px-4 sm:px-6 lg:px-8 bg-purple-50 dark:bg-gray-900 relative z-10 transition-colors duration-300 parallax-section"
       >
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center">
           <motion.div
@@ -702,7 +718,7 @@ const LangwaLanding = () => {
       <motion.section
         ref={communityRef}
         id="community"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800 relative z-10 transition-colors duration-300"
+        className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800 relative z-10 transition-colors duration-300 parallax-section"
       >
         <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center">
           <motion.div
@@ -748,7 +764,7 @@ const LangwaLanding = () => {
       {/* Blog Section */}
       <motion.section
         id="blog"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800 relative z-10 transition-colors duration-300"
+        className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800 relative z-10 transition-colors duration-300 parallax-section"
       >
         <div className="max-w-7xl mx-auto">
           <h2 className={`text-3xl font-bold text-center ${
@@ -808,7 +824,7 @@ const LangwaLanding = () => {
       {/* Testimonials Section */}
       <motion.section
         id="testimonials"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-purple-50 dark:bg-gray-900 relative z-10 transition-colors duration-300"
+        className="py-16 px-4 sm:px-6 lg:px-8 bg-purple-50 dark:bg-gray-900 relative z-10 transition-colors duration-300 parallax-section"
       >
         <div className="max-w-7xl mx-auto">
           <h2 className={`text-3xl font-bold text-center ${
@@ -859,7 +875,7 @@ const LangwaLanding = () => {
       {/* Download Section */}
       <motion.section
         id="download"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800 relative z-10 transition-colors duration-300"
+        className="py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-800 relative z-10 transition-colors duration-300 parallax-section"
       >
         <div className="max-w-7xl mx-auto text-center">
           <h2 className={`text-3xl font-bold ${
@@ -898,7 +914,7 @@ const LangwaLanding = () => {
       {/* Contact Section */}
       <motion.section
         id="contact"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-purple-50 dark:bg-gray-900 relative z-10 transition-colors duration-300"
+        className="py-16 px-4 sm:px-6 lg:px-8 bg-purple-50 dark:bg-gray-900 relative z-10 transition-colors duration-300 parallax-section"
       >
         <div className="max-w-7xl mx-auto">
           <h2 className={`text-3xl font-bold text-center ${
@@ -1126,4 +1142,3 @@ const LangwaLanding = () => {
 };
 
 export default LangwaLanding;
-
