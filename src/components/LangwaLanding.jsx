@@ -597,7 +597,7 @@ const LangwaLanding = () => {
             <Suspense fallback={<LoadingSpinner />}>
               <div className="w-full max-w-xl lg:max-w-2xl xl:max-w-3xl relative">
                 <div className="aspect-[4/3] w-full">
-                  <LanguageLearningAnimation />
+                  <LanguageLearningAnimation isDarkTheme={isDarkTheme} />
                 </div>
               </div>
             </Suspense>
