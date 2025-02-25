@@ -22,7 +22,14 @@ const FeaturesAnimation = ({ isDarkTheme }) => {
   ];
 
   return (
-    <section className={`py-16 ${isDarkTheme ? 'bg-gray-900' : 'bg-white'} transition-colors duration-300`}>
+    // Use a gradient if dark theme, or white if light theme
+    <section
+      className={`py-16 transition-colors duration-300 ${
+        isDarkTheme
+          ? 'bg-gradient-to-br from-[#08090A] to-[#1A1B1D]'
+          : 'bg-white'
+      }`}
+    >
       <div className="max-w-6xl mx-auto px-4">
         <motion.div 
           initial={{ opacity: 0 }}
@@ -31,7 +38,9 @@ const FeaturesAnimation = ({ isDarkTheme }) => {
           className="text-center mb-12"
         >
           <motion.h2 
-            className={`text-3xl font-bold mb-4 ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}
+            className={`text-3xl font-bold mb-4 ${
+              isDarkTheme ? 'text-white' : 'text-gray-900'
+            }`}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -39,7 +48,9 @@ const FeaturesAnimation = ({ isDarkTheme }) => {
             Smarter Way to Learn
           </motion.h2>
           <motion.p 
-            className={`text-lg ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}
+            className={`text-lg ${
+              isDarkTheme ? 'text-gray-300' : 'text-gray-600'
+            }`}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -57,11 +68,11 @@ const FeaturesAnimation = ({ isDarkTheme }) => {
               transition={{ delay: index * 0.1 + 0.4 }}
               className={`relative p-6 rounded-xl ${
                 isDarkTheme 
-                  ? 'bg-gray-800 hover:bg-gray-750' 
+                  ? 'bg-[#1A1B1D] hover:bg-[#2C2D2F]' 
                   : 'bg-white hover:bg-gray-50'
               } shadow-lg transition-all duration-300 group`}
             >
-              {/* Highlight Effect */}
+              {/* Highlight Overlay (Optional) */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-purple-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               
               {/* Icon */}
