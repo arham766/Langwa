@@ -53,8 +53,13 @@ const CommunityAnimation = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Definitions */}
+      {/* Dark Gradient Definition */}
       <defs>
+        <linearGradient id="darkGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#08090A" />
+          <stop offset="100%" stopColor="#1A1B1D" />
+        </linearGradient>
+
         <filter id="glow">
           <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
           <feMerge>
@@ -69,6 +74,13 @@ const CommunityAnimation = () => {
           <stop offset="100%" stopColor="#f3e8ff" stopOpacity="0"/>
         </radialGradient>
       </defs>
+
+      {/* Full Background using the Gradient */}
+      <rect
+        width="400"
+        height="400"
+        fill="url(#darkGradient)"
+      />
 
       {/* Background Circles */}
       <motion.circle
@@ -168,8 +180,13 @@ const CommunityAnimation = () => {
                 cx="220"
                 cy="85"
                 r="6"
-                fill={user.status === 'Active' ? '#22c55e' : 
-                      user.status === 'Teaching' ? '#3b82f6' : '#eab308'}
+                fill={
+                  user.status === 'Active' 
+                    ? '#22c55e' 
+                    : user.status === 'Teaching' 
+                      ? '#3b82f6' 
+                      : '#eab308'
+                }
                 animate={{
                   opacity: [1, 0.5, 1]
                 }}
