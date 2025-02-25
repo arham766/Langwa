@@ -10,6 +10,21 @@ const MobileLearningAnimation = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
+      {/* Dark Gradient Definition */}
+      <defs>
+        <linearGradient id="darkGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#08090A" />
+          <stop offset="100%" stopColor="#1A1B1D" />
+        </linearGradient>
+      </defs>
+
+      {/* Full Background using the Gradient */}
+      <rect
+        width="800"
+        height="600"
+        fill="url(#darkGradient)"
+      />
+
       {/* Background Circles */}
       <motion.circle
         cx="400"
