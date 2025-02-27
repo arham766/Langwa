@@ -1,106 +1,75 @@
+// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',
+  darkMode: 'class', // Dark mode enabled via 'class'
   theme: {
     extend: {
       fontFamily: {
         sans: ['Montserrat', 'sans-serif'],
         body: ['Open Sans', 'sans-serif'],
       },
+      // Enhanced color palette with better dark mode support
       colors: {
-        primary: {
-          DEFAULT: '#8b5cf6',
-          50: '#faf5ff',
-          100: '#f3e8ff',
-          200: '#e9d5ff',
-          300: '#d8b4fe',
-          400: '#c084fc',
-          500: '#a855f7',
-          600: '#9333ea',
-          700: '#7e22ce',
-          800: '#6b21a8',
-          900: '#581c87',
-          light: '#faf5ff',
-          dark: '#4c1d95'
+        // Primary / Brand color: Magic Blue
+        brand: {
+          DEFAULT: '#5E6AD2', // Magic Blue
+          50: '#F6F7FC',
+          100: '#E9EAFA',
+          200: '#C7C9EB',
+          300: '#A4A8E1',
+          400: '#8287D7',
+          500: '#5E6AD2', // same as DEFAULT
+          600: '#4B54AC',
+          700: '#3A4186',
+          800: '#292E60',
+          900: '#181B3A',
         },
+
+        // Background colors: Mercury White (light) & Enhanced Dark for dark mode
         background: {
-          DEFAULT: '#faf5ff',
-          light: '#faf5ff',
-          dark: '#16063a'
+          DEFAULT: '#F4F5F8', // Mercury White
+          light: '#F4F5F8',   // For clarity, same as DEFAULT
+          dark: '#000000',    // Deeper dark for true black theme
         },
+
+        // Text colors: high contrast text
         text: {
-          DEFAULT: '#4c1d95',
-          light: '#4c1d95',
-          dark: '#e2daff'
+          DEFAULT: '#222326', // Dark text on light backgrounds
+          light: '#222326',   // same as default
+          dark: '#F4F5F8',    // Light text on dark backgrounds
         },
-        secondary: {
-          DEFAULT: '#e9d5ff',
-          50: '#faf5ff',
-          100: '#f3e8ff',
-          200: '#e9d5ff',
-          300: '#d8b4fe',
-          400: '#c084fc',
-          500: '#a855f7',
-          600: '#9333ea',
-          700: '#7e22ce',
-          800: '#6b21a8',
-          900: '#581c87',
-          light: '#e9d5ff',
-          dark: '#2d1b69'
-        },
-        accent: {
-          DEFAULT: '#a855f7',
-          light: '#a855f7',
-          dark: '#8e2de2'
-        },
+
+        // Enhanced dark mode tokens
         dark: {
           bg: {
-            primary: '#16063a',
-            secondary: '#2d1b69',
-            tertiary: '#2d2d2d',
+            primary: '#000000',     // True black
+            secondary: '#080808',   // Slightly lighter black
+            tertiary: '#101010',    // Even lighter for hierarchy
           },
           text: {
-            primary: '#e2daff',
-            secondary: '#a0a0a0',
-            tertiary: '#6b7280',
+            primary: '#F4F5F8',     // White text
+            secondary: '#E2E3E5',   // Very light gray
+            tertiary: '#ADB0B3',    // Light gray
           },
           border: {
-            primary: '#2d1b69',
-            secondary: '#404040',
+            primary: '#2A2A2E',     // Dark gray
+            secondary: '#323236',   // Medium gray
           },
           accent: {
-            purple: '#b983ff',
-            blue: '#60a5fa',
-            green: '#34d399',
-            yellow: '#fbbf24',
+            primary: '#5E6AD2',     // Brand color
+            glow: 'rgba(94, 106, 210, 0.15)' // Glow effect color
           }
         },
-        light: {
-          bg: {
-            primary: '#faf5ff',
-            secondary: '#e9d5ff',
-            tertiary: '#e5e7eb',
-          },
-          text: {
-            primary: '#4c1d95',
-            secondary: '#4b5563',
-            tertiary: '#6b7280',
-          },
-          border: {
-            primary: '#e5e7eb',
-            secondary: '#d1d5db',
-          }
-        }
       },
       animation: {
         'float': 'float 3s ease-in-out infinite',
         'spin-slow': 'spin 3s linear infinite',
         'bounce-slow': 'bounce 3s infinite',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-slow': 'pulseSlow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'slide-up': 'slideUp 0.5s ease-out',
         'slide-down': 'slideDown 0.5s ease-out',
         'fade-in': 'fadeIn 0.5s ease-out',
@@ -112,6 +81,7 @@ export default {
         'slide-in-right': 'slideInRight 0.5s ease-out',
         'slide-in-left': 'slideInLeft 0.5s ease-out',
         'shimmer': 'shimmer 2s linear infinite',
+        'glow': 'glow 3s ease-in-out infinite',
       },
       keyframes: {
         float: {
@@ -162,6 +132,24 @@ export default {
           '0%': { backgroundPosition: '-1000px 0' },
           '100%': { backgroundPosition: '1000px 0' },
         },
+        pulseSlow: {
+          '0%, 100%': { 
+            opacity: 0.4,
+            transform: 'scale(1)'
+          },
+          '50%': { 
+            opacity: 0.8,
+            transform: 'scale(1.05)'
+          },
+        },
+        glow: {
+          '0%, 100%': { 
+            filter: 'brightness(1) saturate(1)'
+          },
+          '50%': { 
+            filter: 'brightness(1.2) saturate(1.2)'
+          },
+        }
       },
       transitionProperty: {
         'height': 'height',
@@ -170,6 +158,7 @@ export default {
         'transform': 'transform',
         'opacity': 'opacity',
         'colors': 'background-color, border-color, color, fill, stroke',
+        'filter': 'filter, backdrop-filter'
       },
       transitionDuration: {
         '0': '0ms',
@@ -182,16 +171,29 @@ export default {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(var(--tw-gradient-stops))',
         'gradient-border': 'linear-gradient(to right, var(--tw-gradient-stops))',
+        'gradient-spotlight': 'radial-gradient(circle at var(--x, 50%) var(--y, 50%), var(--tw-gradient-stops))',
       },
       boxShadow: {
         'dark': '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
         'dark-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.4)',
         'light': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
         'light-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+        'brand': '0 0 15px rgba(94, 106, 210, 0.5)',
+        'brand-sm': '0 0 10px rgba(94, 106, 210, 0.3)',
+        'inner-glow': 'inset 0 0 20px 5px rgba(94, 106, 210, 0.15)',
       },
       scale: {
         '98': '.98',
         '102': '1.02',
+      },
+      backdropBlur: {
+        'xs': '2px',
+      },
+      // Add custom blur classes
+      blur: {
+        'xs': '2px',
+        '4xl': '72px',
+        '5xl': '96px',
       },
     },
   },
@@ -202,7 +204,10 @@ export default {
       borderColor: ['dark', 'dark-hover'],
       opacity: ['dark'],
       scale: ['hover', 'active'],
+      boxShadow: ['dark', 'dark-hover'],
+      ringWidth: ['dark', 'dark-hover'],
+      ringColor: ['dark', 'dark-hover'],
     },
   },
   plugins: [],
-}
+};
