@@ -17,6 +17,19 @@ body {
   font-family: 'Montserrat', sans-serif;
 }
 
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  @apply bg-gray-900;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-brand-500 rounded-full hover:bg-brand-400;
+}
+
 /* Typography */
 @layer base {
   h1, h2, h3, h4, h5, h6 {
@@ -31,7 +44,17 @@ body {
   p, span, div {
     @apply font-body text-base md:text-lg leading-relaxed;
   }
+
+  /* Enhanced dark mode text */
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    @apply text-white;
+  }
+  
+  .dark p, .dark span, .dark div {
+    @apply text-gray-300;
+  }
 }
+
 
 /* Component Classes */
 @layer components {
@@ -42,19 +65,23 @@ body {
   
   .btn-primary {
     @apply bg-purple-600 text-white hover:bg-purple-700 
-           dark:bg-purple-500 dark:hover:bg-purple-600;
+           dark:bg-gradient-to-r dark:from-brand-500 dark:to-brand-600 
+           dark:ring-2 dark:ring-brand-400/20 dark:hover:shadow-lg 
+           dark:hover:shadow-brand-500/20;
   }
   
   .btn-outline {
     @apply border-2 border-purple-600 text-purple-600 
-           hover:bg-purple-50 dark:border-purple-400 
-           dark:text-purple-400 dark:hover:bg-purple-900/20;
+           hover:bg-purple-50 dark:border-brand-400 
+           dark:text-brand-300 dark:hover:bg-brand-900/20;
   }
 
   /* Cards */
   .card {
     @apply p-6 rounded-xl shadow-lg transition-all duration-300
-           bg-white dark:bg-gray-800 hover:shadow-xl;
+           bg-white dark:bg-gray-800/80 dark:backdrop-blur-md 
+           dark:border dark:border-gray-700/50 hover:shadow-xl
+           dark:hover:shadow-xl dark:hover:shadow-black/50;
   }
 
   /* Section Containers */
@@ -85,14 +112,14 @@ body {
 
 /* Loading States */
 .loading-spinner {
-  @apply w-12 h-12 rounded-full border-4 border-purple-200 
-         border-t-purple-600 animate-spin;
+  @apply w-12 h-12 rounded-full border-4 border-brand-200 
+         border-t-brand-600 animate-spin;
 }
 
 /* Hover Effects */
 .hover-lift {
   @apply transition-transform duration-300 hover:-translate-y-1 
-         hover:shadow-lg;
+         hover:shadow-lg dark:hover:shadow-brand-900/20;
 }
 
 /* Animation Utilities */
@@ -110,6 +137,44 @@ body {
 
 .animate-slide-down {
   animation: slideDown 0.5s ease-out forwards;
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Enhanced Lighting Effects for Dark Mode */
+.dark .glow-effect {
+  @apply relative;
+}
+
+.dark .glow-effect::before {
+  content: '';
+  @apply absolute inset-0 -z-10 bg-brand-500/10 blur-xl rounded-xl;
+  transform: translateZ(0);
+}
+
+.dark .glow-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-300 to-brand-500;
+}
+
+.dark .glow-border {
+  @apply border border-brand-500/30;
+  box-shadow: 0 0 15px 1px rgba(94, 106, 210, 0.2);
+}
+
+.dark .glow-card {
+  @apply relative;
+}
+
+.dark .glow-card::after {
+  content: '';
+  @apply absolute inset-0 -z-10 opacity-0 transition-opacity duration-300 
+         bg-gradient-to-r from-brand-500/20 to-purple-500/20 blur-xl rounded-xl;
+}
+
+.dark .glow-card:hover::after {
+  @apply opacity-100;
 }
 
 /* SVG Animations */
@@ -179,6 +244,17 @@ body {
   }
 }
 
+@keyframes pulseSlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
 /* Scroll Animations */
 .scroll-trigger {
   @apply opacity-0 translate-y-4 transition-all duration-700;
@@ -190,8 +266,8 @@ body {
 
 /* Navigation */
 .nav-link {
-  @apply text-gray-600 hover:text-purple-600 dark:text-gray-300 
-         dark:hover:text-purple-400 transition-colors duration-300;
+  @apply text-gray-600 hover:text-brand-600 dark:text-gray-300 
+         dark:hover:text-brand-300 transition-colors duration-300;
 }
 
 /* Feature Animations */
@@ -219,28 +295,8 @@ body {
 /* Mobile Menu */
 .mobile-menu {
   @apply fixed inset-x-0 top-16 bg-white dark:bg-gray-800 
-         shadow-lg transition-all duration-300 ease-in-out;
-}
-
-.mobile-menu-enter {
-  @apply transition-all duration-300;
-  max-height: 0;
-  opacity: 0;
-}
-
-.mobile-menu-enter-active {
-  max-height: 1000px;
-  opacity: 1;
-}
-
-.mobile-menu-exit {
-  max-height: 1000px;
-  opacity: 1;
-}
-
-.mobile-menu-exit-active {
-  max-height: 0;
-  opacity: 0;
+         shadow-lg transition-all duration-300 ease-in-out
+         dark:border-t dark:border-gray-700;
 }
 
 /* Dark Mode Transitions */
@@ -250,24 +306,43 @@ body {
 
 /* Gradient Backgrounds */
 .gradient-primary {
-  @apply bg-gradient-to-br from-purple-500 to-purple-700;
+  @apply bg-gradient-to-br from-brand-500 to-brand-700;
+}
+
+.dark .gradient-primary {
+  @apply bg-gradient-to-br from-brand-400 to-brand-600 
+         shadow-lg shadow-brand-500/20;
 }
 
 .gradient-secondary {
   @apply bg-gradient-to-br from-purple-50 to-white 
-         dark:from-gray-900 dark:to-gray-800;
+         dark:from-gray-900 dark:to-black;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+/* Enhanced Dark Mode Section Treatments */
+.dark .section-divider {
+  @apply border-t border-gray-800;
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
+.dark .glass-card {
+  @apply bg-gray-800/80 backdrop-blur-md border border-gray-700/50 shadow-lg;
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-purple-500 rounded-full hover:bg-purple-600 
-         dark:bg-purple-600 dark:hover:bg-purple-500;
+.dark .glass-card:hover {
+  @apply shadow-xl shadow-black/50;
+}
+
+/* Button Glows */
+.dark .btn-glow:hover {
+  box-shadow: 0 0 15px rgba(94, 106, 210, 0.5);
+}
+
+.dark .btn-glow-sm:hover {
+  box-shadow: 0 0 10px rgba(94, 106, 210, 0.3);
+}
+
+/* Particle background fallback */
+.dark .particle-fallback {
+  @apply fixed inset-0 pointer-events-none z-0;
+  background: radial-gradient(circle at 50% 50%, rgba(94, 106, 210, 0.1) 0%, rgba(0, 0, 0, 0) 50%);
 }
