@@ -70,7 +70,7 @@ const LangwaLanding = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState(0);
-  const [isDarkTheme, setIsDarkTheme] = useState(false); // Dark theme state
+  const [isDarkTheme, setIsDarkTheme] = useState(true); // Set dark theme as default
 
   // Refs
   const heroRef = useRef(null);
@@ -131,19 +131,19 @@ const LangwaLanding = () => {
 
   const features = [
     {
-      icon: <Globe className="w-12 h-12 text-brand-600" />,
+      icon: <Globe className="w-12 h-12 text-brand-500" />,
       title: '40+ Languages',
       description: 'Learn any language with personalized lessons.',
       delay: 0,
     },
     {
-      icon: <Book className="w-12 h-12 text-brand-600" />,
+      icon: <Book className="w-12 h-12 text-brand-500" />,
       title: 'Smart Learning',
       description: 'AI-powered curriculum adapts to your progress.',
       delay: 0.2,
     },
     {
-      icon: <Users className="w-12 h-12 text-brand-600" />,
+      icon: <Users className="w-12 h-12 text-brand-500" />,
       title: 'Community',
       description: 'Practice with native speakers worldwide.',
       delay: 0.4,
@@ -168,15 +168,20 @@ const LangwaLanding = () => {
     },
   ];
 
-  // Dark Theme Effect
+  // Dark Theme Effect - Force dark mode by default
   useEffect(() => {
     // Check for saved user preference in localStorage, default to system preference
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+    // Default to dark mode if not explicitly set to light
+    if (savedTheme !== 'light') {
       setIsDarkTheme(true);
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      setIsDarkTheme(false);
+      document.documentElement.classList.remove('dark');
     }
   }, []);
 
@@ -192,7 +197,7 @@ const LangwaLanding = () => {
     }
   };
 
-  // Enhanced Three.js background animation
+  // Enhanced Three.js background animation for dark mode
   useEffect(() => {
     if (canvasRef.current && !threeSceneRef.current) {
       const scene = new THREE.Scene();
@@ -206,28 +211,83 @@ const LangwaLanding = () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-      // Create particles
+      // Create particles with glow effect
       const particlesGeometry = new THREE.BufferGeometry();
-      const particlesCount = window.innerWidth < 768 ? 300 : 700;
+      const particlesCount = window.innerWidth < 768 ? 500 : 1200;
       const positions = new Float32Array(particlesCount * 3);
+      const sizes = new Float32Array(particlesCount);
+      const colors = new Float32Array(particlesCount * 3);
 
-      for (let i = 0; i < particlesCount * 3; i++) {
-        positions[i] = (Math.random() - 0.5) * 200;
+      const colorOptions = [
+        new THREE.Color('#5E6AD2'), // Brand color
+        new THREE.Color('#7A85E1'), // Light brand
+        new THREE.Color('#4B54AC'), // Darker brand
+      ];
+
+      for (let i = 0; i < particlesCount; i++) {
+        const i3 = i * 3;
+        // Position particles in a 3D space
+        positions[i3] = (Math.random() - 0.5) * 300;
+        positions[i3 + 1] = (Math.random() - 0.5) * 200;
+        positions[i3 + 2] = (Math.random() - 0.5) * 300;
+        
+        // Random sizes for particles
+        sizes[i] = Math.random() * 2 + 0.5;
+        
+        // Set random colors from our options
+        const colorIndex = Math.floor(Math.random() * colorOptions.length);
+        const color = colorOptions[colorIndex];
+        colors[i3] = color.r;
+        colors[i3 + 1] = color.g;
+        colors[i3 + 2] = color.b;
       }
 
       particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      particlesGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-      const particlesMaterial = new THREE.PointsMaterial({
-        // Switch color depending on theme
-        color: isDarkTheme ? 0xffffff : 0x5E6AD2,
-        size: 0.5,
-        sizeAttenuation: true,
+      // Create a custom shader material for glowing particles
+      const particlesMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          pointTexture: { value: new THREE.TextureLoader().load('/glow-particle.png') },
+          uTime: { value: 0 },
+          uSize: { value: 30 * renderer.getPixelRatio() }
+        },
+        vertexShader: `
+          attribute float size;
+          attribute vec3 color;
+          varying vec3 vColor;
+          uniform float uTime;
+          uniform float uSize;
+          
+          void main() {
+            vColor = color;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            gl_PointSize = size * uSize * (300.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vColor;
+          uniform sampler2D pointTexture;
+          
+          void main() {
+            vec4 texColor = texture2D(pointTexture, gl_PointCoord);
+            gl_FragColor = vec4(vColor, 1.0) * texColor;
+          }
+        `,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
         transparent: true,
-        opacity: 0.7,
+        vertexColors: true
       });
 
       const particles = new THREE.Points(particlesGeometry, particlesMaterial);
       scene.add(particles);
+
+      // Add ambient light to the scene for a gentle glow
+      const ambientLight = new THREE.AmbientLight(0x404040, 2);
+      scene.add(ambientLight);
 
       camera.position.z = 100;
 
@@ -242,10 +302,16 @@ const LangwaLanding = () => {
 
       window.addEventListener('mousemove', onMouseMove);
 
+      // Clock for animation timing
+      const clock = new THREE.Clock();
+
       // Animation loop with interactivity
       let animationFrameId;
       const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
+        
+        const elapsedTime = clock.getElapsedTime();
+        particlesMaterial.uniforms.uTime.value = elapsedTime;
 
         // Smoothly interpolate mouse position
         target.x += (mouse.x - target.x) * 0.05;
@@ -256,7 +322,9 @@ const LangwaLanding = () => {
 
         camera.lookAt(scene.position);
 
-        particles.rotation.y += 0.001;
+        // Slowly rotate particles
+        particles.rotation.y = elapsedTime * 0.05;
+        particles.rotation.z = elapsedTime * 0.02;
 
         renderer.render(scene, camera);
       };
@@ -273,6 +341,9 @@ const LangwaLanding = () => {
         
         renderer.setSize(width, height);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        // Update particle size based on screen size
+        particlesMaterial.uniforms.uSize.value = 30 * renderer.getPixelRatio();
       };
 
       window.addEventListener('resize', handleResize);
@@ -322,6 +393,25 @@ const LangwaLanding = () => {
       });
     }
 
+    // Animated section backgrounds
+    const sections = document.querySelectorAll('.parallax-section');
+    sections.forEach((section, index) => {
+      gsap.fromTo(
+        section,
+        { backgroundPosition: '50% 0%' },
+        {
+          backgroundPosition: '50% 100%',
+          ease: 'none',
+          scrollTrigger: {
+            trigger: section,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: true,
+          },
+        }
+      );
+    });
+
     // Cleanup
     return () => {
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
@@ -340,19 +430,24 @@ const LangwaLanding = () => {
   const navigationItems = ['Features', 'Benefits', 'Community', 'Blog', 'Testimonials', 'Download'];
 
   return (
-    <div className={`min-h-screen scroll-smooth ${isDarkTheme ? 'dark bg-background-dark' : 'bg-background-light'} overflow-x-hidden transition-colors duration-300`}>
+    <div className={`min-h-screen scroll-smooth ${isDarkTheme ? 'dark bg-black' : 'bg-background-light'} overflow-x-hidden transition-colors duration-300`}>
       {/* Background Canvas */}
       <canvas
         ref={canvasRef}
         className="fixed top-0 left-0 w-full h-full pointer-events-none z-0"
       />
+      
+      {/* Ambient background gradient overlay for dark mode */}
+      {isDarkTheme && (
+        <div className="fixed inset-0 bg-gradient-to-b from-blue-900/10 via-purple-900/5 to-black/20 pointer-events-none z-0"></div>
+      )}
 
       {/* Navigation */}
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: 'spring', stiffness: 100 }}
-        className={`fixed w-full z-50 ${isDarkTheme ? 'bg-background-dark/80' : 'bg-background-light/80'} backdrop-blur-md shadow-sm transition-colors duration-300`}
+        className={`fixed w-full z-50 ${isDarkTheme ? 'bg-black/80' : 'bg-background-light/80'} backdrop-blur-lg shadow-lg shadow-brand-900/10 transition-colors duration-300`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="flex justify-between items-center h-16">
@@ -362,7 +457,7 @@ const LangwaLanding = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <span className={`text-2xl font-bold ${isDarkTheme ? 'text-brand-200' : 'text-brand-600'} transition-colors duration-300`}>
+              <span className={`text-2xl font-bold ${isDarkTheme ? 'text-brand-300' : 'text-brand-600'} transition-colors duration-300`}>
                 Langwa
               </span>
             </motion.div>
@@ -373,7 +468,7 @@ const LangwaLanding = () => {
                 <motion.a
                   key={item}
                   href={`#${item.toLowerCase()}`}
-                  className={`${isDarkTheme ? 'text-gray-300 hover:text-brand-200' : 'text-gray-600 hover:text-brand-600'} transition-colors duration-300`}
+                  className={`${isDarkTheme ? 'text-gray-300 hover:text-brand-300' : 'text-gray-600 hover:text-brand-600'} transition-colors duration-300`}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -384,7 +479,7 @@ const LangwaLanding = () => {
               {/* Theme Toggle Button */}
               <motion.button
                 onClick={toggleTheme}
-                className={`p-2 rounded-full ${isDarkTheme ? 'bg-gray-800 text-yellow-400' : 'bg-gray-100 text-gray-600'} transition-colors duration-300`}
+                className={`p-2 rounded-full ${isDarkTheme ? 'bg-gray-800 text-yellow-400 border border-gray-700' : 'bg-gray-100 text-gray-600'} transition-colors duration-300`}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label="Toggle theme"
@@ -396,7 +491,7 @@ const LangwaLanding = () => {
               <motion.button
                 className={`${
                   isDarkTheme 
-                    ? 'bg-brand-600 text-white hover:bg-brand-500' 
+                    ? 'bg-brand-500 text-white hover:bg-brand-600 ring-2 ring-brand-300/20' 
                     : 'bg-brand-600 text-white hover:bg-brand-700'
                 } px-6 py-2 rounded-full transition-all duration-300`}
                 whileHover={{ scale: 1.05 }}
@@ -411,7 +506,7 @@ const LangwaLanding = () => {
               {/* Theme Toggle Button */}
               <motion.button
                 onClick={toggleTheme}
-                className={`p-2 rounded-full ${isDarkTheme ? 'bg-gray-800 text-yellow-400' : 'bg-gray-100 text-gray-600'} transition-colors duration-300`}
+                className={`p-2 rounded-full ${isDarkTheme ? 'bg-gray-800 text-yellow-400 border border-gray-700' : 'bg-gray-100 text-gray-600'} transition-colors duration-300`}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label="Toggle theme"
@@ -437,7 +532,7 @@ const LangwaLanding = () => {
                 href={social.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`${isDarkTheme ? 'text-gray-300 hover:text-brand-200' : 'text-gray-600 hover:text-brand-600'} transition-colors duration-300`}
+                className={`${isDarkTheme ? 'text-gray-300 hover:text-brand-300' : 'text-gray-600 hover:text-brand-600'} transition-colors duration-300`}
                 whileHover={{ scale: 1.2 }}
                 whileTap={{ scale: 0.9 }}
                 aria-label={social.label}
@@ -456,14 +551,14 @@ const LangwaLanding = () => {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden bg-background-light dark:bg-background-dark shadow-lg transition-colors duration-300"
+              className={`md:hidden ${isDarkTheme ? 'bg-gray-900 border-t border-gray-800' : 'bg-background-light'} shadow-lg transition-colors duration-300`}
             >
               <div className="px-4 py-2 space-y-1">
                 {navigationItems.map((item) => (
                   <motion.a
                     key={item}
                     href={`#${item.toLowerCase()}`}
-                    className={`${isDarkTheme ? 'text-gray-300 hover:text-brand-200' : 'text-gray-600 hover:text-brand-600'} block px-3 py-2 rounded-md transition-colors duration-300`}
+                    className={`${isDarkTheme ? 'text-gray-300 hover:text-brand-300' : 'text-gray-600 hover:text-brand-600'} block px-3 py-2 rounded-md transition-colors duration-300`}
                     whileHover={{ x: 10 }}
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -478,7 +573,7 @@ const LangwaLanding = () => {
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`${isDarkTheme ? 'text-gray-300 hover:text-brand-200' : 'text-gray-600 hover:text-brand-600'} transition-colors duration-300`}
+                      className={`${isDarkTheme ? 'text-gray-300 hover:text-brand-300' : 'text-gray-600 hover:text-brand-600'} transition-colors duration-300`}
                       whileHover={{ scale: 1.2 }}
                       whileTap={{ scale: 0.9 }}
                       aria-label={social.label}
@@ -498,10 +593,18 @@ const LangwaLanding = () => {
         ref={heroRef}
         className={`relative min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8 ${
           isDarkTheme 
-            ? 'bg-background-dark'
+            ? 'bg-black'
             : 'bg-background-light'
         } overflow-hidden z-10 transition-colors duration-300`}
       >
+        {/* Animated lighting effect for dark mode */}
+        {isDarkTheme && (
+          <>
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full filter blur-3xl animate-pulse-slow"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-600/10 rounded-full filter blur-3xl animate-pulse-slow" style={{ animationDelay: '-2s' }}></div>
+          </>
+        )}
+        
         <motion.div
           className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center min-h-[calc(100vh-200px)]"
           variants={containerVariants}
@@ -516,14 +619,14 @@ const LangwaLanding = () => {
           >
             <motion.h1
               className={`text-4xl md:text-6xl font-bold ${
-                isDarkTheme ? 'text-text-dark' : 'text-text-light'
+                isDarkTheme ? 'text-white' : 'text-text-light'
               } mb-6 transition-colors duration-300`}
               variants={itemVariants}
             >
               Master Any Language with{' '}
               <motion.span
                 className={`${
-                  isDarkTheme ? 'text-brand-200' : 'text-brand-600'
+                  isDarkTheme ? 'text-brand-300 bg-clip-text text-transparent bg-gradient-to-r from-brand-300 to-brand-500' : 'text-brand-600'
                 } inline-block origin-center transition-colors duration-300`}
               >
                 Langwa
@@ -557,9 +660,13 @@ const LangwaLanding = () => {
               variants={itemVariants}
             >
               <motion.button
-                whileHover={{ scale: 1.05, backgroundColor: '#4B54AC' }}
+                whileHover={{ scale: 1.05, boxShadow: '0 0 15px rgba(94, 106, 210, 0.5)' }}
                 whileTap={{ scale: 0.95 }}
-                className="bg-brand-600 text-white px-8 py-3 rounded-full flex items-center justify-center group transition-colors duration-300"
+                className={`${
+                  isDarkTheme 
+                    ? 'bg-gradient-to-r from-brand-500 to-brand-600 ring-2 ring-brand-400/20' 
+                    : 'bg-brand-600'
+                } text-white px-8 py-3 rounded-full flex items-center justify-center group transition-all duration-300`}
               >
                 Start Free Trial
                 <motion.div
@@ -572,9 +679,16 @@ const LangwaLanding = () => {
               </motion.button>
 
               <motion.button
-                whileHover={{ scale: 1.05, borderColor: '#5E6AD2', color: '#5E6AD2' }}
+                whileHover={{ 
+                  scale: 1.05, 
+                  boxShadow: isDarkTheme ? '0 0 15px rgba(94, 106, 210, 0.2)' : 'none' 
+                }}
                 whileTap={{ scale: 0.95 }}
-                className="border-2 border-brand-600 text-brand-600 px-8 py-3 rounded-full flex items-center justify-center transition-colors duration-300"
+                className={`${
+                  isDarkTheme 
+                    ? 'border-2 border-brand-500/50 text-brand-300 hover:border-brand-400' 
+                    : 'border-2 border-brand-600 text-brand-600'
+                } px-8 py-3 rounded-full flex items-center justify-center transition-colors duration-300`}
                 onClick={() => setIsVideoPlaying(true)}
               >
                 <Play className="mr-2 h-5 w-5" />
@@ -592,7 +706,11 @@ const LangwaLanding = () => {
           >
             <Suspense fallback={<LoadingSpinner />}>
               <div className="w-full max-w-xl lg:max-w-2xl xl:max-w-3xl relative">
-                <div className="aspect-[4/3] w-full">
+                {/* Glow effect behind the animation in dark mode */}
+                {isDarkTheme && (
+                  <div className="absolute inset-0 bg-brand-500/10 filter blur-3xl rounded-full"></div>
+                )}
+                <div className="aspect-[4/3] w-full relative z-10">
                   <LanguageLearningAnimation isDarkTheme={isDarkTheme} />
                 </div>
               </div>
@@ -605,12 +723,21 @@ const LangwaLanding = () => {
       <motion.section
         ref={featuresRef}
         id="features"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-background-light dark:bg-background-dark relative z-10 features-section transition-colors duration-300 parallax-section"
+className={`py-16 px-4 sm:px-6 lg:px-8 ${
+  isDarkTheme 
+    ? 'bg-black border-t border-gray-800' 
+    : 'bg-background-light'
+} relative z-10 features-section transition-colors duration-300 parallax-section`}
       >
+        {/* Animated lighting effect for dark mode */}
+        {isDarkTheme && (
+          <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-brand-500/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+        )}
+      
         <div className="max-w-7xl mx-auto">
           <motion.h2
             className={`text-3xl font-bold text-center ${
-              isDarkTheme ? 'text-text-dark' : 'text-text-light'
+              isDarkTheme ? 'text-white' : 'text-text-light'
             } mb-12 transition-colors duration-300`}
             variants={itemVariants}
             initial="hidden"
@@ -623,31 +750,40 @@ const LangwaLanding = () => {
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                className="feature-card p-6 rounded-xl bg-background-light dark:bg-dark-bg-secondary shadow-lg hover:shadow-xl transition-all duration-300"
+                className={`feature-card p-6 rounded-xl ${
+                  isDarkTheme 
+                    ? 'bg-gray-800/80 backdrop-blur-md border border-gray-700/50' 
+                    : 'bg-background-light'
+                } shadow-lg hover:shadow-xl transition-all duration-300`}
                 variants={fadeInUp}
                 initial="initial"
                 whileInView="animate"
                 viewport={{ once: true, margin: "-100px" }}
-                whileHover={{ y: -5, scale: 1.02 }}
+                whileHover={{ 
+                  y: -5, 
+                  scale: 1.02,
+                  boxShadow: isDarkTheme ? '0 8px 30px rgba(94, 106, 210, 0.2)' : '' 
+                }}
                 transition={{ delay: feature.delay }}
               >
                 <div className="flex flex-col items-center text-center">
                   <motion.div
                     whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.5 }}
+                    className={isDarkTheme ? 'text-brand-300' : ''}
                   >
                     {feature.icon}
                   </motion.div>
                   <h3
                     className={`mt-4 text-xl font-semibold ${
-                      isDarkTheme ? 'text-text-dark' : 'text-text-light'
+                      isDarkTheme ? 'text-white' : 'text-text-light'
                     } transition-colors duration-300`}
                   >
                     {feature.title}
                   </h3>
                   <p
                     className={`mt-2 ${
-                      isDarkTheme ? 'text-gray-400' : 'text-gray-600'
+                      isDarkTheme ? 'text-gray-300' : 'text-gray-600'
                     } transition-colors duration-300`}
                   >
                     {feature.description}
@@ -667,8 +803,17 @@ const LangwaLanding = () => {
       {/* Benefits Section */}
       <motion.section
         id="benefits"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-background-light dark:bg-background-dark relative z-10 transition-colors duration-300 parallax-section"
+        className={`py-16 px-4 sm:px-6 lg:px-8 ${
+          isDarkTheme 
+            ? 'bg-black border-t border-gray-800' 
+            : 'bg-background-light'
+        } relative z-10 transition-colors duration-300 parallax-section`}
       >
+        {/* Animated lighting effect for dark mode */}
+        {isDarkTheme && (
+          <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-indigo-500/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+        )}
+      
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center">
           <motion.div
             className="lg:w-1/2"
@@ -679,7 +824,7 @@ const LangwaLanding = () => {
           >
             <h2
               className={`text-3xl font-bold ${
-                isDarkTheme ? 'text-text-dark' : 'text-gray-900'
+                isDarkTheme ? 'text-white' : 'text-gray-900'
               } mb-6 transition-colors duration-300`}
             >
               Benefits of Using Langwa
@@ -699,8 +844,12 @@ const LangwaLanding = () => {
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.2 }}
                 >
-                  <Check className="h-6 w-6 text-brand-600 mr-3" />
-                  <span className={`text-gray-700 dark:text-gray-300 transition-colors duration-300`}>
+                  <div className={`flex items-center justify-center h-6 w-6 rounded-full ${
+                    isDarkTheme ? 'bg-brand-500/20 text-brand-300' : 'text-brand-600'
+                  } mr-3`}>
+                    <Check className="h-4 w-4" />
+                  </div>
+                  <span className={`${isDarkTheme ? 'text-gray-300' : 'text-gray-700'} transition-colors duration-300`}>
                     {benefit}
                   </span>
                 </motion.li>
@@ -716,6 +865,10 @@ const LangwaLanding = () => {
             transition={{ duration: 0.8 }}
           >
             <Suspense fallback={<LoadingSpinner />}>
+              {/* Add a subtle glow in dark mode */}
+              {isDarkTheme && (
+                <div className="absolute inset-0 bg-brand-500/5 filter blur-3xl rounded-full"></div>
+              )}
               <MobileLearningAnimation />
             </Suspense>
           </motion.div>
@@ -726,8 +879,17 @@ const LangwaLanding = () => {
       <motion.section
         ref={communityRef}
         id="community"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-background-light dark:bg-background-dark relative z-10 transition-colors duration-300 parallax-section"
+className={`py-16 px-4 sm:px-6 lg:px-8 ${
+  isDarkTheme 
+    ? 'bg-black border-t border-gray-800' 
+    : 'bg-background-light'
+} relative z-10 transition-colors duration-300 parallax-section`}
       >
+        {/* Animated lighting effect for dark mode */}
+        {isDarkTheme && (
+          <div className="absolute top-1/2 right-1/3 w-72 h-72 bg-purple-500/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+        )}
+      
         <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center">
           <motion.div
             className="lg:w-1/2 mt-8 lg:mt-0"
@@ -750,21 +912,28 @@ const LangwaLanding = () => {
           >
             <h2
               className={`text-3xl font-bold ${
-                isDarkTheme ? 'text-text-dark' : 'text-gray-900'
+                isDarkTheme ? 'text-white' : 'text-gray-900'
               } mb-6 transition-colors duration-300`}
             >
               Join Our Global Community
             </h2>
             <p
-              className={`text-gray-600 dark:text-gray-300 mb-6 transition-colors duration-300`}
+              className={`${
+                isDarkTheme ? 'text-gray-300' : 'text-gray-600'
+              } mb-6 transition-colors duration-300`}
             >
               Connect with millions of learners worldwide. Share your progress, practice with native speakers, and be part of a supportive community that helps you achieve fluency.
             </p>
             <motion.button
-              className={`bg-brand-600 text-white px-6 py-3 rounded-full hover:bg-brand-700 transition-all flex items-center ${
-                isDarkTheme ? '' : ''
-              }`}
-              whileHover={{ scale: 1.05 }}
+              className={`${
+                isDarkTheme 
+                  ? 'bg-gradient-to-r from-brand-500 to-brand-600 text-white ring-2 ring-brand-400/20' 
+                  : 'bg-brand-600 text-white'
+              } px-6 py-3 rounded-full hover:bg-brand-700 transition-all flex items-center`}
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: isDarkTheme ? '0 0 15px rgba(94, 106, 210, 0.3)' : ''
+              }}
               whileTap={{ scale: 0.95 }}
             >
               Join Now <ArrowRight className="ml-2 h-5 w-5" />
@@ -776,12 +945,21 @@ const LangwaLanding = () => {
       {/* Blog Section */}
       <motion.section
         id="blog"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-background-light dark:bg-background-dark relative z-10 transition-colors duration-300 parallax-section"
+        className={`py-16 px-4 sm:px-6 lg:px-8 ${
+          isDarkTheme 
+            ? 'bg-black border-t border-gray-800' 
+            : 'bg-background-light'
+        } relative z-10 transition-colors duration-300 parallax-section`}
       >
+        {/* Animated lighting effect for dark mode */}
+        {isDarkTheme && (
+          <div className="absolute bottom-1/3 left-1/3 w-96 h-96 bg-brand-500/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+        )}
+      
         <div className="max-w-7xl mx-auto">
           <h2
             className={`text-3xl font-bold text-center ${
-              isDarkTheme ? 'text-text-dark' : 'text-gray-900'
+              isDarkTheme ? 'text-white' : 'text-gray-900'
             } mb-12 transition-colors duration-300`}
           >
             Latest from Our Blog
@@ -790,11 +968,19 @@ const LangwaLanding = () => {
             {blogPosts.map((post) => (
               <motion.article
                 key={post.id}
-                className={`bg-background-light dark:bg-dark-bg-secondary rounded-xl shadow-lg overflow-hidden transition-colors duration-300`}
+                className={`${
+                  isDarkTheme 
+                    ? 'bg-gray-800/80 backdrop-blur-md border border-gray-700/50' 
+                    : 'bg-background-light'
+                } rounded-xl shadow-lg overflow-hidden transition-colors duration-300`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -5, scale: 1.02 }}
+                whileHover={{ 
+                  y: -5, 
+                  scale: 1.02,
+                  boxShadow: isDarkTheme ? '0 8px 30px rgba(0, 0, 0, 0.5)' : ''
+                }}
               >
                 <div className="relative">
                   <img
@@ -802,6 +988,7 @@ const LangwaLanding = () => {
                     alt={post.title}
                     className="w-full h-48 object-cover"
                   />
+                  <div className={`absolute inset-0 ${isDarkTheme ? 'bg-gradient-to-b from-transparent via-black/10 to-black/50' : ''}`}></div>
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
                     <p className="text-white text-sm">{post.date}</p>
                   </div>
@@ -809,13 +996,15 @@ const LangwaLanding = () => {
                 <div className="p-6">
                   <h3
                     className={`text-xl font-semibold ${
-                      isDarkTheme ? 'text-text-dark' : 'text-gray-900'
+                      isDarkTheme ? 'text-white' : 'text-gray-900'
                     } mb-2 transition-colors duration-300`}
                   >
                     {post.title}
                   </h3>
                   <p
-                    className={`text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-300`}
+                    className={`${
+                      isDarkTheme ? 'text-gray-300' : 'text-gray-600'
+                    } mb-4 transition-colors duration-300`}
                   >
                     {post.excerpt}
                   </p>
@@ -829,7 +1018,9 @@ const LangwaLanding = () => {
                     </span>
                     <Link to={`/blog/${post.id}`}>
                       <motion.button
-                        className={`text-brand-600 font-semibold transition-colors duration-300`}
+                        className={`${
+                          isDarkTheme ? 'text-brand-300' : 'text-brand-600'
+                        } font-semibold transition-colors duration-300`}
                         whileHover={{ x: 5 }}
                       >
                         Read More →
@@ -846,12 +1037,21 @@ const LangwaLanding = () => {
       {/* Testimonials Section */}
       <motion.section
         id="testimonials"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-background-light dark:bg-background-dark relative z-10 transition-colors duration-300 parallax-section"
+className={`py-16 px-4 sm:px-6 lg:px-8 ${
+  isDarkTheme 
+    ? 'bg-black border-t border-gray-800' 
+    : 'bg-background-light'
+} relative z-10 transition-colors duration-300 parallax-section`}
       >
+        {/* Animated lighting effect for dark mode */}
+        {isDarkTheme && (
+          <div className="absolute top-1/4 right-1/4 w-80 h-80 bg-indigo-500/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+        )}
+        
         <div className="max-w-7xl mx-auto">
           <h2
             className={`text-3xl font-bold text-center ${
-              isDarkTheme ? 'text-text-dark' : 'text-gray-900'
+              isDarkTheme ? 'text-white' : 'text-gray-900'
             } mb-12 transition-colors duration-300`}
           >
             Join Thousands of Successful Language Learners
@@ -860,12 +1060,20 @@ const LangwaLanding = () => {
             {testimonials.map((testimonial, index) => (
               <motion.div
                 key={index}
-                className="p-6 rounded-xl bg-background-light dark:bg-dark-bg-secondary shadow-lg transition-colors duration-300"
+                className={`p-6 rounded-xl ${
+                  isDarkTheme 
+                    ? 'bg-gray-800/80 backdrop-blur-md border border-gray-700/50' 
+                    : 'bg-background-light'
+                } shadow-lg transition-colors duration-300`}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.2 }}
-                whileHover={{ y: -5, scale: 1.02 }}
+                whileHover={{ 
+                  y: -5, 
+                  scale: 1.02,
+                  boxShadow: isDarkTheme ? '0 8px 30px rgba(0, 0, 0, 0.5)' : ''
+                }}
               >
                 <div className="flex flex-col items-start">
                   <div className="flex items-center mb-4">
@@ -881,14 +1089,16 @@ const LangwaLanding = () => {
                     ))}
                   </div>
                   <p
-                    className={`text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-300`}
+                    className={`${
+                      isDarkTheme ? 'text-gray-300' : 'text-gray-600'
+                    } mb-4 transition-colors duration-300`}
                   >
                     {testimonial.text}
                   </p>
                   <div>
                     <p
                       className={`font-semibold ${
-                        isDarkTheme ? 'text-text-dark' : 'text-gray-900'
+                        isDarkTheme ? 'text-white' : 'text-gray-900'
                       } transition-colors duration-300`}
                     >
                       {testimonial.name}
@@ -911,19 +1121,31 @@ const LangwaLanding = () => {
       {/* Download Section */}
       <motion.section
         id="download"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-background-light dark:bg-background-dark relative z-10 transition-colors duration-300 parallax-section"
+        className={`py-16 px-4 sm:px-6 lg:px-8 ${
+          isDarkTheme 
+            ? 'bg-black border-t border-gray-800' 
+            : 'bg-background-light'
+        } relative z-10 transition-colors duration-300 parallax-section`}
       >
+        {/* Animated lighting effect for dark mode */}
+        {isDarkTheme && (
+          <>
+            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-brand-500/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full filter blur-3xl animate-pulse-slow" style={{ animationDelay: '-3s' }}></div>
+          </>
+        )}
+        
         <div className="max-w-7xl mx-auto text-center">
           <h2
             className={`text-3xl font-bold ${
-              isDarkTheme ? 'text-text-dark' : 'text-gray-900'
+              isDarkTheme ? 'text-white' : 'text-gray-900'
             } mb-6 transition-colors duration-300`}
           >
             Start Learning Today
           </h2>
           <p
             className={`text-xl ${
-              isDarkTheme ? 'text-gray-400' : 'text-gray-600'
+              isDarkTheme ? 'text-gray-300' : 'text-gray-600'
             } mb-8 transition-colors duration-300`}
           >
             Download Langwa and begin your language learning journey
@@ -931,8 +1153,15 @@ const LangwaLanding = () => {
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <motion.a
               href="#"
-              className="flex items-center justify-center bg-black dark:bg-gray-700 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-all duration-300"
-              whileHover={{ scale: 1.05 }}
+              className={`flex items-center justify-center ${
+                isDarkTheme 
+                  ? 'bg-gray-800 border border-gray-700 text-white hover:bg-gray-700' 
+                  : 'bg-black text-white hover:bg-gray-800'
+              } px-8 py-3 rounded-lg transition-all duration-300`}
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: isDarkTheme ? '0 0 15px rgba(0, 0, 0, 0.3)' : ''
+              }}
               whileTap={{ scale: 0.95 }}
             >
               <Download className="mr-2 h-5 w-5" />
@@ -940,8 +1169,15 @@ const LangwaLanding = () => {
             </motion.a>
             <motion.a
               href="#"
-              className="flex items-center justify-center bg-black dark:bg-gray-700 text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-all duration-300"
-              whileHover={{ scale: 1.05 }}
+              className={`flex items-center justify-center ${
+                isDarkTheme 
+                  ? 'bg-gray-800 border border-gray-700 text-white hover:bg-gray-700' 
+                  : 'bg-black text-white hover:bg-gray-800'
+              } px-8 py-3 rounded-lg transition-all duration-300`}
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: isDarkTheme ? '0 0 15px rgba(0, 0, 0, 0.3)' : ''
+              }}
               whileTap={{ scale: 0.95 }}
             >
               <Download className="mr-2 h-5 w-5" />
@@ -954,12 +1190,21 @@ const LangwaLanding = () => {
       {/* Contact Section */}
       <motion.section
         id="contact"
-        className="py-16 px-4 sm:px-6 lg:px-8 bg-background-light dark:bg-background-dark relative z-10 transition-colors duration-300 parallax-section"
+className={`py-16 px-4 sm:px-6 lg:px-8 ${
+  isDarkTheme 
+    ? 'bg-black border-t border-gray-800' 
+    : 'bg-background-light'
+} relative z-10 transition-colors duration-300 parallax-section`}
       >
+        {/* Animated lighting effect for dark mode */}
+        {isDarkTheme && (
+          <div className="absolute bottom-1/3 right-1/3 w-80 h-80 bg-brand-500/5 rounded-full filter blur-3xl animate-pulse-slow"></div>
+        )}
+        
         <div className="max-w-7xl mx-auto">
           <h2
             className={`text-3xl font-bold text-center ${
-              isDarkTheme ? 'text-text-dark' : 'text-gray-900'
+              isDarkTheme ? 'text-white' : 'text-gray-900'
             } mb-12 transition-colors duration-300`}
           >
             Get in Touch
@@ -967,36 +1212,48 @@ const LangwaLanding = () => {
           <div className="max-w-md mx-auto">
             <form className="space-y-6">
               <div>
-                <label htmlFor="name" className="block text-gray-700 dark:text-gray-300">
+                <label htmlFor="name" className={`block ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
                   Name
                 </label>
                 <input
                   type="text"
                   id="name"
-                  className="w-full mt-1 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-600 dark:bg-dark-bg-secondary dark:text-white dark:border-gray-600 transition-colors duration-300"
+                  className={`w-full mt-1 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+                    isDarkTheme 
+                      ? 'bg-gray-800 border-gray-700 text-white' 
+                      : 'border text-gray-900'
+                  } transition-colors duration-300`}
                   placeholder="Your Name"
                   required
                 />
               </div>
               <div>
-                <label htmlFor="email" className="block text-gray-700 dark:text-gray-300">
+                <label htmlFor="email" className={`block ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
                   Email
                 </label>
                 <input
                   type="email"
                   id="email"
-                  className="w-full mt-1 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-600 dark:bg-dark-bg-secondary dark:text-white dark:border-gray-600 transition-colors duration-300"
+                  className={`w-full mt-1 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+                    isDarkTheme 
+                      ? 'bg-gray-800 border-gray-700 text-white' 
+                      : 'border text-gray-900'
+                  } transition-colors duration-300`}
                   placeholder="Your Email"
                   required
                 />
               </div>
               <div>
-                <label htmlFor="message" className="block text-gray-700 dark:text-gray-300">
+                <label htmlFor="message" className={`block ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
                   Message
                 </label>
                 <textarea
                   id="message"
-                  className="w-full mt-1 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-brand-600 dark:bg-dark-bg-secondary dark:text-white dark:border-gray-600 transition-colors duration-300"
+                  className={`w-full mt-1 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500 ${
+                    isDarkTheme 
+                      ? 'bg-gray-800 border-gray-700 text-white' 
+                      : 'border text-gray-900'
+                  } transition-colors duration-300`}
                   placeholder="Your Message"
                   rows="5"
                   required
@@ -1004,8 +1261,15 @@ const LangwaLanding = () => {
               </div>
               <motion.button
                 type="submit"
-                className="w-full bg-brand-600 text-white px-6 py-3 rounded-full hover:bg-brand-700 transition-all duration-300"
-                whileHover={{ scale: 1.02 }}
+                className={`w-full ${
+                  isDarkTheme 
+                    ? 'bg-gradient-to-r from-brand-500 to-brand-600 ring-2 ring-brand-400/20' 
+                    : 'bg-brand-600 hover:bg-brand-700'
+                } text-white px-6 py-3 rounded-full transition-all duration-300`}
+                whileHover={{ 
+                  scale: 1.02,
+                  boxShadow: isDarkTheme ? '0 0 15px rgba(94, 106, 210, 0.3)' : ''
+                }}
                 whileTap={{ scale: 0.98 }}
               >
                 Send Message
@@ -1016,7 +1280,11 @@ const LangwaLanding = () => {
       </motion.section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 dark:bg-background-dark text-white py-12 px-4 sm:px-6 lg:px-8 relative z-10 transition-colors duration-300">
+      <footer className={`${
+        isDarkTheme 
+          ? 'bg-black border-t border-gray-800' 
+          : 'bg-gray-900'
+      } text-white py-12 px-4 sm:px-6 lg:px-8 relative z-10 transition-colors duration-300`}>
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="text-2xl font-bold mb-4">Langwa</h3>
@@ -1149,7 +1417,7 @@ const LangwaLanding = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center"
             onClick={() => setIsVideoPlaying(false)}
           >
             <motion.div
@@ -1159,6 +1427,10 @@ const LangwaLanding = () => {
               className="relative max-w-4xl w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Video glow effect in dark mode */}
+              {isDarkTheme && (
+                <div className="absolute -inset-4 bg-brand-500/20 filter blur-xl rounded-3xl -z-10"></div>
+              )}
               <video
                 ref={videoRef}
                 className="w-full rounded-lg"
@@ -1167,7 +1439,7 @@ const LangwaLanding = () => {
                 src="/videos/app-demo.mp4"
               />
               <motion.button
-                className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/50"
+                className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/50 hover:bg-black/80"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsVideoPlaying(false)}
